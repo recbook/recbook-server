@@ -38,3 +38,6 @@ jspm_packages
 
 # Webstrom
 .idea/
+
+# Gulp
+dist/

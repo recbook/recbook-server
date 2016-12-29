@@ -15,5 +15,24 @@
   "bugs": {
     "url": "https://github.com/recbook/recbook-server/issues"
   },
-  "homepage": "https://github.com/recbook/recbook-server#readme"
+  "homepage": "https://github.com/recbook/recbook-server#readme",
+  "dependencies": {
+    "body-parser": "^1.15.2",
+    "config": "^1.24.0",
+    "express": "^4.14.0"
+  },
+  "devDependencies": {
+    "babel": "^6.5.2",
+    "babel-cli": "^6.18.0",
+    "babel-core": "^6.21.0",
+    "babel-preset-es2015": "^6.18.0",
+    "babel-preset-latest": "^6.16.0",
+    "gulp": "^3.9.1",
+    "gulp-babel": "^6.1.2",
+    "gulp-cli": "^1.2.2",
+    "gulp-concat": "^2.6.1",
+    "gulp-nodemon": "^2.2.1",
+    "gulp-sourcemaps": "^1.9.1",
+    "rimraf": "^2.5.4"
+  }
 }
