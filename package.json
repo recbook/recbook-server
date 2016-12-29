@@ -1,8 +1,6 @@
 {
   "name": "recbook-server",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "0.0.1",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 0",
     "start": "gulp server"
@@ -11,7 +9,6 @@
     "type": "git",
     "url": "git+https://github.com/recbook/recbook-server.git"
   },
-  "author": "",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/recbook/recbook-server/issues"
