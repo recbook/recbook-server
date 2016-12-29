@@ -1,0 +1,41 @@
+schema {
+  query: rootQuery
+  mutation: rootMutation
+}
+
+scalar Date
+
+# Root Mutation of the Recbook Schema
+type rootMutation {
+  # Create a new user and get accessToken.
+  createUser(email: String!, name: String!, password: String!): User
+
+  # Sign in and get accessToken.
+  getToken(email: String!, password: String!): User
+}
+
+# Root Query of the Recbook Schema
+type rootQuery {
+  # List of All users in Recbook
+  users: [User]
+
+  # UserType by _id
+  user(
+    # _id of user.
+    _id: String!
+  ): User
+
+  # Logged in user.
+  viewer: User
+}
+
+# UserType of Recbook
+type User {
+  _id: String
+  email: String
+  name: String
+
+  # accessToken of user
+  accessToken: String
+  createdAt: Date
+}
