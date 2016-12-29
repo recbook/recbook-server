@@ -9,7 +9,6 @@ import {
   GraphQLNonNull,
   GraphQLInterfaceType
 } from 'graphql';
-import { PointObject } from 'graphql-geojson';
 
 import mongoose from 'mongoose';
 

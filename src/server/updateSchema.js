@@ -7,8 +7,6 @@ import mongoose from './util/mongoose.util.js';
 import schema from './graphQLschema/index';
 const sharedSchemaPath = path.join(__dirname, '../..');
 
-mongoose.connect();
-
 graphql(schema, introspectionQuery).then(result => {
   fs.writeFileSync(
     `${sharedSchemaPath}/src/shared/schema.json`,
