@@ -6,8 +6,7 @@ const app = express();
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
-
 const port = process.env.PORT || config.PORT;
 app.listen(port, () =>{
-  console.log(`recbook listening on port ${port}!`);
+  console.log(`Recbook listening on port ${port}!`);
 });
