@@ -1,6 +1,4 @@
-# recbook-server
-
-Recbook GraphQL server
+# Recbook GraphQL Server
 
 ## Installation
 ```
