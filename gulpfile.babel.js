@@ -10,21 +10,31 @@ const SOURCE = {
   DIST: 'dist',
 };
 
-gulp.task('updateSchema', ['build'], () => {
+gulp.task('default', ['build'], () => {
+  envFile('./env.dev.list');
   return nodemon({
-    script: './dist/server/updateSchema.js',
-    watch: ['src/**/*.js'],
+    script: './dist/server/app.js',
+    watch: SOURCE.ALL,
     tasks: ['build'],
+    env: { NODE_ENV: 'development' },
   });
 });
 
 gulp.task('server', ['build'], () => {
-  envFile('./env.dev.list');
+  envFile('./env.prod.list');
   return nodemon({
     script: './dist/server/app.js',
-    watch: ['src/**/*.js'],
+    watch: SOURCE.ALL,
     tasks: ['build'],
-    env: { NODE_ENV: 'development' },
+    env: { NODE_ENV: 'production' },
+  });
+});
+
+gulp.task('updateSchema', ['build'], () => {
+  return nodemon({
+    script: './dist/server/updateSchema.js',
+    watch: SOURCE.ALL,
+    tasks: ['build'],
   });
 });
 
