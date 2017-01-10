@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import '../mongooseSchema/model/user.model';
+import '../mongooseSchema/model/book.model';
+import '../mongooseSchema/model/snippet.model';
 
 export default {
   connect() {

@@ -1,4 +1,5 @@
 import {
+  GraphQLBoolean,
   GraphQLList,
   GraphQLObjectType,
   GraphQLSchema,
@@ -10,67 +11,143 @@ import {
   GraphQLInterfaceType,
   GraphQLInputObjectType
 } from 'graphql';
-
+import {
+  mutationWithClientMutationId,
+} from 'graphql-relay';
 import mongoose from 'mongoose';
 
 import jwtUtil from '../../util/jwt.util';
-import User from '../type/user.type';
+import UserType from '../type/user.type';
 
 const UserModel = mongoose.model('User');
 
 const UserMutation = {
-  createUser: {
-    type: User,
-    description: 'Create a new user and get accessToken.',
-    args: {
+  createUser: mutationWithClientMutationId({
+    name: 'createUser',
+    inputFields: {
       email: { type: new GraphQLNonNull(GraphQLString) },
       name: { type: new GraphQLNonNull(GraphQLString) },
       password: { type: new GraphQLNonNull(GraphQLString) },
     },
-    resolve: (source, args, _) => (
-      new Promise((resolve, reject) => {
+    outputFields: {
+      accessToken: {
+        type: GraphQLString,
+        resolve: (payload) => payload.accessToken,
+      },
+    },
+    mutateAndGetPayload: (args, args2, args3) => {
+      return new Promise((resolve, reject) => {
         UserModel.create(args)
           .then((user)=> {
-            user.accessToken = jwtUtil.createAccessToken(user);
-            resolve(user);
+            resolve({ accessToken: jwtUtil.createAccessToken(user) });
           })
           .catch((err)=> {
-            reject(err.message);
+            reject(err);
           });
-      })
-    ),
-  },
-  getToken: {
-    type: User,
-    description: 'Sign in and get accessToken.',
-    args: {
+      });
+    },
+  }),
+  getToken: mutationWithClientMutationId({
+    name: 'getToken',
+    inputFields: {
       email: { type: new GraphQLNonNull(GraphQLString) },
       password: { type: new GraphQLNonNull(GraphQLString) },
     },
-    resolve: (source, { email, password }, _) => (
-      new Promise((resolve, reject) => {
+    outputFields: {
+      accessToken: {
+        type: GraphQLString,
+        resolve: (payload) => payload.accessToken,
+      },
+    },
+    mutateAndGetPayload: ({ email, password }) => {
+      return new Promise((resolve, reject) => {
         UserModel.findOne({ email: email })
-          .then((user)=> {
+          .then((user) => {
             if (user) {
               user.comparePassword(password, (err, isMatch) => {
                 if (isMatch) {
-                  user.accessToken = jwtUtil.createAccessToken(user);
-                  return resolve(user);
+                  return resolve({ accessToken: jwtUtil.createAccessToken(user) });
                 }
 
                 return reject('Wrong password.');
               });
-
+            } else {
+              return reject('Not registered.');
             }
-
-            return reject('Not registered.');
           })
-          .catch((err)=> {
+          .catch((err) => {
             reject(err.message);
           });
-      })
-    ),
-  },
+      });
+    },
+  }),
+
+  /// TODO: Implement image upload feature with GraphQL
+  uploadProfileImage: mutationWithClientMutationId({
+    name: 'uploadProfileImage',
+    inputFields: {
+      profileImageUrl: { type: new GraphQLNonNull(GraphQLString) },
+    },
+    outputFields: {
+      user: {
+        type: UserType,
+        resolve: (payload) => payload,
+      },
+    },
+    mutateAndGetPayload: ({ profileImageUrl }, { user }) => {
+      return UserModel
+        .findOneAndUpdate(
+          { _id: user._id },
+          { profileImageUrl },
+          { new: true }
+        );
+    },
+  }),
+  updateColorTheme: mutationWithClientMutationId({
+    name: 'updateColorTheme',
+    inputFields: {
+      colorTheme: { type: new GraphQLNonNull(GraphQLString) },
+    },
+    outputFields: {
+      user: {
+        type: UserType,
+        resolve: (payload) => payload,
+      },
+    },
+    mutateAndGetPayload: ({ colorTheme }, { user }) => {
+      return UserModel
+        .findOneAndUpdate(
+          { _id: user._id },
+          { $set: { 'preference.colorTheme': colorTheme }},
+          { new: true }
+        );
+    },
+  }),
+  updateRemindEmail: mutationWithClientMutationId({
+    name: 'updateRemindEmail',
+    inputFields: {
+      remindEmail: { type: new GraphQLNonNull(GraphQLBoolean) },
+    },
+    outputFields: {
+      user: {
+        type: UserType,
+        resolve: (payload) => payload,
+      },
+    },
+    mutateAndGetPayload: ({ remindEmail }, { user }) => {
+      return new Promise((resolve, reject) => {
+        UserModel
+          .findOneAndUpdate(
+            { _id: user._id },
+            { $set: { 'preference.remindEmail': remindEmail } },
+            { new: true }
+          )
+          .then((updatedUser) =>  UserModel.findOne({ _id: updatedUser._id }))
+          .then(resolve)
+          .catch(reject);
+      });
+    },
+  }),
 };
 
 export default UserMutation;

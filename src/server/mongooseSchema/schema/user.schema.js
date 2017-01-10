@@ -2,24 +2,58 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 const SALT_WORK_FACTOR = 10;
 
+const preferenceSchema = new mongoose.Schema({
+  _id: false,
+  colorTheme: {
+    type: String,
+    default: 'CLASSIC',
+  },
+  remindEmail: {
+    type: Boolean,
+    default: false,
+  },
+});
+
 const UserSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
     unique: true,
   },
-  password: {
-    type: String,
-    required: true,
-  },
   name: {
     type: String,
     required: true,
+  },
+  password: String,
+  profileImageUrl: String,
+  myLibraryBooks: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Book',
+  }],
+  savedBooks: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Book',
+  }],
+  likedSnippets: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Snippet',
+  }],
+  snippetTrash: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Snippet',
+  }],
+  preference: {
+    type: preferenceSchema,
+    default: {
+      colorTheme: 'CLASSIC',
+      remindEmail: false,
+    },
   },
   createdAt: {
     type: Date,
     default: Date.now,
   },
+
 });
 
 UserSchema.pre('save', function (next) {
