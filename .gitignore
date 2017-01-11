@@ -98,4 +98,6 @@ jspm_packages
 #dist folder
 dist
 
-
+#graphql schema
+src/shared/schema.graphqls
+src/shared/schema.json
