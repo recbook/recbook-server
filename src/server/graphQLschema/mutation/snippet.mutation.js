@@ -13,14 +13,11 @@ import {
 import {
   mutationWithClientMutationId,
 } from 'graphql-relay';
-import mongoose from 'mongoose';
 
-import jwtUtil from '../../util/jwt.util';
 import UserType from '../type/user.type';
 import SnippetType from '../type/snippet.type';
 
-const SnippetModel = mongoose.model('Snippet');
-const UserModel = mongoose.model('User');
+import refUtil from '../../util/ref.util';
 
 const SnippetMutation = {
   createSnippet: mutationWithClientMutationId({
@@ -38,26 +35,14 @@ const SnippetMutation = {
       },
     },
     mutateAndGetPayload: (args, { user }) => {
-      return new Promise((resolve, reject) => {
-        SnippetModel.create({ ...args, author: user._id })
-          .then((newSnippet) => {
-            return UserModel.findOneAndUpdate(
-              { _id: user._id },
-              { $addToSet: { myLibraryBooks: args.book } },
-              { new: true }
-            );
-          })
-          .then((myLibraryProcessedUser) => {
-            return UserModel.findOneAndUpdate(
-              { _id: user._id },
-              { $pull: { savedBooks: args.book } },
-              { new: true }
-            );
-          })
-          .then(resolve)
-          .catch(reject);
-      });
-    },
+        const newRef = refUtil.snippetsRef.push();
+        const newKey = newRef.key;
+        return newRef.set({ id: newKey, author: user.id, ...args })
+          .then(() => refUtil.savedRef.child(user.id).child(args.book).remove())
+          .then(() => refUtil.myLibraryRef.child(user.id).child(args.book).set(true))
+          .then(() => refUtil.usersRef.child(user.id).once('value'))
+          .then((snap) => snap.val());
+      },
   }),
   toTrash: mutationWithClientMutationId({
     name: 'toTrash',
@@ -71,16 +56,9 @@ const SnippetMutation = {
       },
     },
     mutateAndGetPayload: ({ snippetId }, { user }) => {
-      return new Promise((resolve, reject) => {
-        UserModel
-          .findOneAndUpdate(
-            { _id: user._id },
-            { $addToSet: { snippetTrash: snippetId } },
-            { new: true }
-          )
-          .then(resolve)
-          .catch(reject);
-      });
+      return refUtil.trashRef.child(user.id).child(snippetId).set(true)
+        .then(() => refUtil.usersRef.child(user.id).once('value'))
+        .then((snap) => snap.val());
     },
   }),
 };

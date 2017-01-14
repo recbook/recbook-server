@@ -15,24 +15,19 @@ import {
 } from 'graphql-relay';
 
 import GraphQLDate from 'graphql-date';
-import mongoose from 'mongoose';
 
-import jwtUtil from '../../util/jwt.util';
+import refUtil from '../../util/ref.util';
 import UserType from '../type/user.type';
 import BookType from '../type/book.type';
-
-const BookModel = mongoose.model('Book');
-const SnippetModel = mongoose.model('Snippet');
-const UserModel = mongoose.model('User');
 
 const BookMutation = {
   saveBook: mutationWithClientMutationId({
     name: 'saveBook',
     inputFields: {
       title: { type: new GraphQLNonNull(GraphQLString) },
+      isbn: { type:  new GraphQLNonNull(GraphQLString) },
       author: { type: GraphQLString },
       category: { type: GraphQLString },
-      isbn: { type: GraphQLString },
       coverImageUrl: { type: GraphQLString },
       coverImageColor: { type: GraphQLString },
       publishedAt: { type: GraphQLDate },
@@ -45,25 +40,27 @@ const BookMutation = {
     },
     mutateAndGetPayload: (args, { user }) => {
       return new Promise((resolve, reject) => {
-        BookModel.findOne({ title: args.title, author: args.author }).exec()
-          .then((existingBook) => {
-            if (!existingBook) {
-
-              //make new book
-              return BookModel.create(args);
+        refUtil.booksRef
+          .orderByChild('isbn')
+          .equalTo(args.isbn)
+          .once('value')
+          .then((snap) => {
+            if (snap.val() === null) {
+              const newRef = refUtil.booksRef.push();
+              const newKey = newRef.key;
+              return newRef.set({ id: newKey, ...args })
+                .then(() => {
+                  return refUtil.booksRef.child(newKey).once('value')
+                    .then((snap) => snap.val())
+                });
+            } else {
+              const vals = Object.keys(snap.val()).map((key) => snap.val()[key]);
+              return vals[0];
             }
-
-            return existingBook;
           })
-          .then((book) => {
-            return UserModel
-              .findOneAndUpdate(
-                { _id: user._id },
-                { $addToSet: { savedBooks: book._id } },
-                { new: true }
-              );
-          })
-          .then(resolve)
+          .then((val) => refUtil.savedRef.child(user.id).child(val.id).set(true))
+          .then(() => refUtil.usersRef.child(user.id).once('value'))
+          .then((snap)=> resolve(snap.val()))
           .catch(reject);
       });
     },
@@ -81,13 +78,9 @@ const BookMutation = {
     },
     mutateAndGetPayload: ({ bookId }, { user }) => {
       return new Promise((resolve, reject) => {
-        UserModel
-          .findOneAndUpdate(
-            { _id: user._id },
-            { $pull: { savedBooks: bookId } },
-            { new: true }
-          )
-          .then(resolve)
+        refUtil.savedRef.child(user.id).child(bookId).remove()
+          .then(() => refUtil.usersRef.child(user.id).once('value'))
+          .then((snap)=> resolve(snap.val()))
           .catch(reject);
       });
     },

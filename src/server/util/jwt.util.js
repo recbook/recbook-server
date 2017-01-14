@@ -20,12 +20,8 @@ export default {
     });
   },
 
-  generatePayload(user) {
-    return { _id: user._id, name: user.name, email: user.email };
-  },
-
-  createAccessToken(user) {
-    return jwt.sign(this.generatePayload(user), JWT_SECRET_KEY, JWT_CREATE_OPTION);
+  createAccessToken(payload) {
+    return jwt.sign(payload, JWT_SECRET_KEY, JWT_CREATE_OPTION);
   },
 
   updateAccessToken(previousToken, updateTokenCallback) {

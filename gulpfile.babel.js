@@ -31,10 +31,12 @@ gulp.task('server', ['build'], () => {
 });
 
 gulp.task('updateSchema', ['build'], () => {
+  envFile('./env.dev.list');
   return nodemon({
     script: './dist/server/updateSchema.js',
     watch: SOURCE.ALL,
     tasks: ['build'],
+    env: { NODE_ENV: 'development' },
   });
 });
 

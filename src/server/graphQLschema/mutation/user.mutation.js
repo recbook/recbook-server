@@ -14,12 +14,16 @@ import {
 import {
   mutationWithClientMutationId,
 } from 'graphql-relay';
-import mongoose from 'mongoose';
+
+import bcrypt from 'bcrypt';
 
 import jwtUtil from '../../util/jwt.util';
+import admin from '../../util/firebase.util';
+import refUtil from '../../util/ref.util';
+
 import UserType from '../type/user.type';
 
-const UserModel = mongoose.model('User');
+const SALT_WORK_FACTOR = 10;
 
 const UserMutation = {
   createUser: mutationWithClientMutationId({
@@ -35,15 +39,46 @@ const UserMutation = {
         resolve: (payload) => payload.accessToken,
       },
     },
-    mutateAndGetPayload: (args, args2, args3) => {
+    mutateAndGetPayload: ({ email, password, name }, args2, args3) => {
+      let id = '';
+      let accessToken = '';
       return new Promise((resolve, reject) => {
-        UserModel.create(args)
-          .then((user)=> {
-            resolve({ accessToken: jwtUtil.createAccessToken(user) });
+        admin.auth().createUser({
+          email: email,
+          emailVerified: false,
+          password: password,
+          displayName: name,
+          disabled: false,
+        })
+          .then((createdUser) => {
+            id = createdUser.uid;
+            accessToken = jwtUtil.createAccessToken({
+              id: id,
+              email: createdUser.email,
+              name: createdUser.displayName,
+            });
+            return bcrypt.genSalt(SALT_WORK_FACTOR)
+              .then((salt) => {
+                  return bcrypt.hash(password, salt);
+                })
+              .then((hash) => {
+                return refUtil.usersRef.child(id).set({
+                  id: id,
+                  email: email,
+                  name: name,
+                  password: hash,
+                  createdAt: Date.now(),
+                  preference: {
+                    colorTheme: 'CLASSIC',
+                    remindEmail: false
+                  },
+                });
+              });
           })
-          .catch((err)=> {
-            reject(err);
-          });
+          .then(() => {
+            resolve({ accessToken: accessToken });
+          })
+          .catch(reject);
       });
     },
   }),
@@ -60,24 +95,28 @@ const UserMutation = {
       },
     },
     mutateAndGetPayload: ({ email, password }) => {
+      let accessToken = '';
       return new Promise((resolve, reject) => {
-        UserModel.findOne({ email: email })
-          .then((user) => {
-            if (user) {
-              user.comparePassword(password, (err, isMatch) => {
-                if (isMatch) {
-                  return resolve({ accessToken: jwtUtil.createAccessToken(user) });
-                }
-
-                return reject('Wrong password.');
-              });
+        admin.auth().getUserByEmail(email)
+          .then(function (userRecord) {
+            accessToken = jwtUtil.createAccessToken({
+              id: userRecord.uid,
+              email: userRecord.email,
+              name: userRecord.displayName,
+            });
+            return refUtil.usersRef.child(userRecord.uid).once('value');
+          })
+          .then((snapshot) => {
+            return bcrypt.compare(password, snapshot.val().password);
+          })
+          .then((isMatch) => {
+            if (isMatch) {
+              resolve({ accessToken: accessToken });
             } else {
-              return reject('Not registered.');
+              reject('wrong password');
             }
           })
-          .catch((err) => {
-            reject(err.message);
-          });
+          .catch(reject);
       });
     },
   }),
@@ -97,7 +136,7 @@ const UserMutation = {
     mutateAndGetPayload: ({ profileImageUrl }, { user }) => {
       return UserModel
         .findOneAndUpdate(
-          { _id: user._id },
+          { id: user.id },
           { profileImageUrl },
           { new: true }
         );
@@ -115,12 +154,9 @@ const UserMutation = {
       },
     },
     mutateAndGetPayload: ({ colorTheme }, { user }) => {
-      return UserModel
-        .findOneAndUpdate(
-          { _id: user._id },
-          { $set: { 'preference.colorTheme': colorTheme }},
-          { new: true }
-        );
+      return refUtil.usersRef.child(user.id).child('preference').child('colorTheme').set(colorTheme)
+        .then(() => refUtil.usersRef.child(user.id).once('value'))
+        .then((snap) => snap.val())
     },
   }),
   updateRemindEmail: mutationWithClientMutationId({
@@ -135,17 +171,9 @@ const UserMutation = {
       },
     },
     mutateAndGetPayload: ({ remindEmail }, { user }) => {
-      return new Promise((resolve, reject) => {
-        UserModel
-          .findOneAndUpdate(
-            { _id: user._id },
-            { $set: { 'preference.remindEmail': remindEmail } },
-            { new: true }
-          )
-          .then((updatedUser) =>  UserModel.findOne({ _id: updatedUser._id }))
-          .then(resolve)
-          .catch(reject);
-      });
+      return refUtil.usersRef.child(user.id).child('preference').child('remainEmail').set(remindEmail)
+        .then(() => refUtil.usersRef.child(user.id).once('value'))
+        .then((snap) => snap.val())
     },
   }),
 };

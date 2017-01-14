@@ -10,19 +10,22 @@ import {
   GraphQLInterfaceType,
   GraphQLBoolean,
 } from 'graphql';
+import {
+  connectionArgs,
+  connectionFromArray,
+  connectionDefinitions,
+} from 'graphql-relay';
 
-import mongoose from 'mongoose';
 import GraphQLDate from 'graphql-date';
 
+import refUtil from '../../util/ref.util';
 import SnippetType from './snippet.type';
-
-const Snippet = mongoose.model('Snippet');
 
 const BookType = new GraphQLObjectType({
   name: 'Book',
   description: 'BookType of Recbook',
   fields: () => ({
-    _id: { type: GraphQLString },
+    id: { type: GraphQLString },
     title: { type: GraphQLString },
     author: { type: GraphQLString },
     category: { type: GraphQLString },
@@ -38,15 +41,13 @@ const BookType = new GraphQLObjectType({
       },
     },
     mySnippets: {
-      type: SnippetType,
+      type: new GraphQLList(SnippetType),
       resolve: (source, args, { user }) => {
-        return Snippet.find({ _id: source.author });
       },
     },
     otherSnippets: {
-      type: SnippetType,
+      type: new GraphQLList(SnippetType),
       resolve: (source, args, { user }) => {
-
       },
     },
   }),

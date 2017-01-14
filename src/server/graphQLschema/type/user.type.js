@@ -10,46 +10,105 @@ import {
   GraphQLInterfaceType,
   GraphQLBoolean,
 } from 'graphql';
+import {
+  connectionArgs,
+  connectionFromArray,
+  connectionDefinitions,
+} from 'graphql-relay';
 
-import mongoose from 'mongoose';
-import GraphQLDate from 'graphql-date';
-
+import refUtil from '../../util/ref.util';
 import BookType from './book.type';
 import SnippetType from './snippet.type';
 
-const BookModel = mongoose.model('Book');
-const SnippetModel = mongoose.model('Snippet');
+const { connectionType: UserBookConnection } = connectionDefinitions({ nodeType: BookType });
+const { connectionType: UserSnippetConnection } = connectionDefinitions({ nodeType: SnippetType });
 
 const UserType = new GraphQLObjectType({
   name: 'User',
   description: 'UserType of Recbook',
   fields: () => ({
-    _id: { type: GraphQLString },
+    id: { type: GraphQLString },
     email: { type: GraphQLString },
     name: { type: GraphQLString },
-    createdAt: { type: GraphQLDate },
+    createdAt: { type: GraphQLString },
     myLibraryBooks: {
-      type: new GraphQLList(BookType),
+      name: 'myLibraryBooks',
+      type: UserBookConnection,
+      args: connectionArgs,
       resolve: (source, args, { user }) => {
-        return BookModel.find({ _id: { $in: source.myLibraryBooks } });
+        return refUtil.myLibraryRef.child(user.id)
+          .orderByKey()
+          .startAt(args.after ? args.after : '')
+          .limitToFirst(args.first ? args.first : 100)
+          .once('value')
+          .then((snap) => {
+            const data = snap.val();
+            const promises = data ?
+              Object.keys(data).map((key) => refUtil.booksRef.child(key).once('value')
+                .then(snap => snap.val())) : [];
+            return Promise.all(promises);
+          })
+          .then((snaps) => connectionFromArray(snaps, args));
       },
     },
     savedBooks: {
-      type: new GraphQLList(BookType),
+      name: 'savedBooks',
+      type: UserBookConnection,
+      args: connectionArgs,
       resolve: (source, args, { user }) => {
-        return BookModel.find({ _id: { $in: source.savedBooks } });
+        return refUtil.savedRef.child(user.id)
+          .orderByKey()
+          .startAt(args.after ? args.after : '')
+          .limitToFirst(args.first ? args.first : 100)
+          .once('value')
+          .then((snap) => {
+            const data = snap.val();
+            const promises = data ?
+              Object.keys(data).map((key) => refUtil.booksRef.child(key).once('value')
+                .then(snap => snap.val())) : [];
+            return Promise.all(promises);
+          })
+          .then((snaps) => connectionFromArray(snaps, args));
       },
     },
     recommendedBooks: {
-      type: new GraphQLList(BookType),
+      name: 'recommendedBooks',
+      type: UserBookConnection,
+      args: connectionArgs,
       resolve: (source, args, { user }) => {
-        return BookModel.find();
+        return refUtil.booksRef
+          .orderByKey()
+          .startAt(args.after ? args.after : '')
+          .limitToFirst(args.first ? args.first : 100)
+          .once('value')
+          .then((snap) => {
+            const data = snap.val();
+            const promises = data ?
+              Object.keys(data).map((key) => refUtil.booksRef.child(key).once('value')
+                .then(snap => snap.val())) : [];
+            return Promise.all(promises);
+          })
+          .then((snaps) => connectionFromArray(snaps, args))
       },
     },
     snippetTrash: {
-      type: new GraphQLList(SnippetType),
+      name: 'snippetTrash',
+      type: UserSnippetConnection,
+      args: connectionArgs,
       resolve: (source, args, { user }) => {
-        return SnippetModel.find({ _id: { $in: source.snippetTrash } });
+        return refUtil.trashRef.child(user.id)
+          .orderByKey()
+          .startAt(args.after ? args.after : '')
+          .limitToFirst(args.first ? args.first : 100)
+          .once('value')
+          .then((snap) => {
+            const data = snap.val();
+            const promises = data ?
+              Object.keys(data).map((key) => refUtil.snippetsRef.child(key).once('value')
+                .then(snap => snap.val())) : [];
+            return Promise.all(promises);
+          })
+          .then((snaps) => connectionFromArray(snaps, args));
       },
     },
     preference: {
@@ -60,7 +119,7 @@ const UserType = new GraphQLObjectType({
 
 const PreferenceType = new GraphQLObjectType({
   name: 'Preference',
-  description: 'UserType of Recbook',
+  description: 'PreferenceType of Recbook',
   fields: () => ({
     colorTheme: {
       type: GraphQLString,

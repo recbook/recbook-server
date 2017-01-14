@@ -3,7 +3,6 @@ import { introspectionQuery, printSchema } from 'graphql/utilities';
 
 import fs from 'fs';
 import path from 'path';
-import mongoose from './util/mongoose.util.js';
 import schema from './graphQLschema/index';
 const sharedSchemaPath = path.join(__dirname, '../..');
 

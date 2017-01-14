@@ -1,7 +1,5 @@
-import mongoose from 'mongoose';
-
+import refUtil from '../../util/ref.util';
 import UserType from '../type/user.type';
-const UserModel = mongoose.model('User');
 
 const ViewerQuery = {
   viewer: {
@@ -10,20 +8,13 @@ const ViewerQuery = {
     resolve: (source, _, { user }) => {
       return new Promise((resolve, reject) => {
         if (user) {
-          return UserModel.findOne({ _id: user._id })
-            .then((user)=> {
-              if (user) {
-                resolve(user);
-              } else {
-                reject('No user.');
-              }
-            })
-            .catch((err)=> {
-              reject(err.message);
+          refUtil.usersRef.child(user.id).once('value')
+            .then((snap) => {
+              resolve({ id: snap.key, ...snap.val() });
             });
+        } else {
+          reject('jwt must be provided.');
         }
-
-        reject('jwt must be provided.');
       });
     },
   },
