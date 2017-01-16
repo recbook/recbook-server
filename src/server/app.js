@@ -2,6 +2,7 @@ import express from 'express';
 import graphqlHTTP from 'express-graphql';
 import schema from './graphQLschema/index';
 import jwtUtil from './util/jwt.util';
+import 'babel-polyfill';
 
 const app = express();
 
