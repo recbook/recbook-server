@@ -63,7 +63,7 @@ export default class BookAPIUtil {
 
   */
   static asyncSearchAllBooks(keyword, next = {}, options = {}) {
-    const { searchingAPI = [BOOK_API_TYPE.GOOGLE, BOOK_API_TYPE.KAKAO] }  = options;
+    const { searchingAPI = [BOOK_API_TYPE.GOOGLE, BOOK_API_TYPE.KAKAO] } = options;
     const asyncSearches = searchingAPI.map(apiType => BOOK_API[apiType].asyncSearchAllBooks(keyword));
 
     if (typeof next !== 'function') return asyncSearches;

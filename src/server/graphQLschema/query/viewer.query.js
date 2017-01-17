@@ -1,4 +1,4 @@
-import refUtil from '../../util/ref.util';
+import firebase from '../../util/firebase.util';
 import UserType from '../type/user.type';
 
 const ViewerQuery = {
@@ -8,16 +8,17 @@ const ViewerQuery = {
     resolve: (source, _, { user }) => {
       return new Promise((resolve, reject) => {
         if (user) {
-          refUtil.usersRef.child(user.id).once('value')
+          firebase.refs.usersRef.child(user.id).once('value')
             .then((snap) => {
               resolve({ id: snap.key, ...snap.val() });
             });
         } else {
-          reject('jwt must be provided.');
+          // TODO : implement global error handler.
+          reject('This query needs access token. Please check header.authorization.');
         }
       });
-    },
-  },
+    }
+  }
 };
 
 export default ViewerQuery;

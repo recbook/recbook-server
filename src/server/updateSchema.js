@@ -1,4 +1,5 @@
-import { graphql }  from 'graphql';
+import 'babel-polyfill';
+import { graphql } from 'graphql';
 import { introspectionQuery, printSchema } from 'graphql/utilities';
 
 import fs from 'fs';

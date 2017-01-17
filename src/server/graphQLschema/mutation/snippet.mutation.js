@@ -1,23 +1,15 @@
 import {
-  GraphQLList,
-  GraphQLObjectType,
-  GraphQLSchema,
   GraphQLString,
   GraphQLInt,
-  GraphQLFloat,
-  GraphQLEnumType,
-  GraphQLNonNull,
-  GraphQLInterfaceType,
-  GraphQLInputObjectType
+  GraphQLNonNull
 } from 'graphql';
 import {
-  mutationWithClientMutationId,
+  mutationWithClientMutationId
 } from 'graphql-relay';
 
 import UserType from '../type/user.type';
-import SnippetType from '../type/snippet.type';
 
-import refUtil from '../../util/ref.util';
+import firebase from '../../util/firebase.util';
 
 const SnippetMutation = {
   createSnippet: mutationWithClientMutationId({
@@ -26,41 +18,51 @@ const SnippetMutation = {
       book: { type: new GraphQLNonNull(GraphQLString) },
       contents: { type: new GraphQLNonNull(GraphQLString) },
       page: { type: new GraphQLNonNull(GraphQLInt) },
-      imageUrl: { type: new GraphQLNonNull(GraphQLString) },
+      imageUrl: { type: new GraphQLNonNull(GraphQLString) }
     },
     outputFields: {
       user: {
         type: UserType,
-        resolve: (payload) => payload,
-      },
+        resolve: (payload) => payload
+      }
     },
     mutateAndGetPayload: (args, { user }) => {
-        const newRef = refUtil.snippetsRef.push();
-        const newKey = newRef.key;
-        return newRef.set({ id: newKey, author: user.id, ...args })
-          .then(() => refUtil.savedRef.child(user.id).child(args.book).remove())
-          .then(() => refUtil.myLibraryRef.child(user.id).child(args.book).set(true))
-          .then(() => refUtil.usersRef.child(user.id).once('value'))
-          .then((snap) => snap.val());
-      },
+      return new Promise((resolve, reject) => {
+        if (user) {
+          const newRef = firebase.refs.snippetsRef.push();
+          const newKey = newRef.key;
+          return newRef.set({ id: newKey, author: user.id, ...args, createdAt: Date.now() })
+            .then(() => firebase.refs.savedRef.child(user.id).child(args.book).remove())
+            .then(() => firebase.refs.myLibraryRef.child(user.id).child(args.book).set(true))
+            .then(() => firebase.refs.usersRef.child(user.id).once('value'))
+            .then((snap) => resolve(snap.val()));
+        }
+        return reject('This mutation needs access token. Please check header.authorization.');
+      });
+    }
   }),
   toTrash: mutationWithClientMutationId({
     name: 'toTrash',
     inputFields: {
-      snippetId: { type: new GraphQLNonNull(GraphQLString) },
+      snippetId: { type: new GraphQLNonNull(GraphQLString) }
     },
     outputFields: {
       user: {
         type: UserType,
-        resolve: (payload) => payload,
-      },
+        resolve: (payload) => payload
+      }
     },
     mutateAndGetPayload: ({ snippetId }, { user }) => {
-      return refUtil.trashRef.child(user.id).child(snippetId).set(true)
-        .then(() => refUtil.usersRef.child(user.id).once('value'))
-        .then((snap) => snap.val());
-    },
-  }),
+      return new Promise((resolve, reject) => {
+        if (user) {
+          return firebase.refs.trashRef.child(user.id).child(snippetId).set(true)
+            .then(() => firebase.refs.usersRef.child(user.id).once('value'))
+            .then((snap) => resolve(snap.val()));
+        }
+        return reject('This mutation needs access token. Please check header.authorization.');
+      });
+    }
+  })
 };
 
 export default SnippetMutation;

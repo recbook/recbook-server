@@ -10,8 +10,8 @@ const Schema = new GraphQLSchema({
     name: 'rootQuery',
     description: 'Root Query of the Recbook Schema',
     fields: () => ({
-      ...ViewerQuery,
-    }),
+      ...ViewerQuery
+    })
   }),
   mutation: new GraphQLObjectType({
     name: 'rootMutation',
@@ -19,9 +19,9 @@ const Schema = new GraphQLSchema({
     fields: () => ({
       ...UserMutation,
       ...BookMutation,
-      ...SnippetMutation,
-    }),
-  }),
+      ...SnippetMutation
+    })
+  })
 });
 
 export default Schema;

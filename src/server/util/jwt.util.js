@@ -11,12 +11,10 @@ export default {
         if (err.message === 'jwt must be provided') {
           return next();
         }
-
-        res.status(401).json({ err_point: err.message });
-      } else {
-        req.user = decoded;
-        return next();
+        return res.status(401).json({err: 'Invalid access token.'});
       }
+      req.user = decoded;
+      return next();
     });
   },
 
@@ -25,10 +23,11 @@ export default {
   },
 
   updateAccessToken(previousToken, updateTokenCallback) {
-    jwt.verify(previousToken, JWT_SECRET_KEY, { ignoreExpiration: true }, function (err, decodedUser) {
-      if (typeof updateTokenCallback === 'function') {
-        updateTokenCallback(err, decodedUser ? this.createAccessToken(decodedUser) : undefined);
-      }
-    }.bind(this));
-  },
+    jwt.verify(previousToken, JWT_SECRET_KEY, { ignoreExpiration: true },
+      function (err, decodedUser) {
+        if (typeof updateTokenCallback === 'function') {
+          updateTokenCallback(err, decodedUser ? this.createAccessToken(decodedUser) : null);
+        }
+      }.bind(this));
+  }
 };

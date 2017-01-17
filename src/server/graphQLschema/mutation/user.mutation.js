@@ -1,25 +1,17 @@
 import {
   GraphQLBoolean,
-  GraphQLList,
-  GraphQLObjectType,
-  GraphQLSchema,
   GraphQLString,
-  GraphQLInt,
-  GraphQLFloat,
-  GraphQLEnumType,
-  GraphQLNonNull,
-  GraphQLInterfaceType,
-  GraphQLInputObjectType
+  GraphQLNonNull
 } from 'graphql';
 import {
-  mutationWithClientMutationId,
+  mutationWithClientMutationId
 } from 'graphql-relay';
 
 import bcrypt from 'bcrypt';
 
 import jwtUtil from '../../util/jwt.util';
 import admin from '../../util/firebase.util';
-import refUtil from '../../util/ref.util';
+import firebase from '../../util/firebase.util';
 
 import UserType from '../type/user.type';
 
@@ -31,38 +23,38 @@ const UserMutation = {
     inputFields: {
       email: { type: new GraphQLNonNull(GraphQLString) },
       name: { type: new GraphQLNonNull(GraphQLString) },
-      password: { type: new GraphQLNonNull(GraphQLString) },
+      password: { type: new GraphQLNonNull(GraphQLString) }
     },
     outputFields: {
       accessToken: {
         type: GraphQLString,
-        resolve: (payload) => payload.accessToken,
-      },
+        resolve: (payload) => payload.accessToken
+      }
     },
-    mutateAndGetPayload: ({ email, password, name }, args2, args3) => {
+    mutateAndGetPayload: ({ email, password, name }) => {
       let id = '';
       let accessToken = '';
       return new Promise((resolve, reject) => {
-        admin.auth().createUser({
+        firebase.admin.auth().createUser({
           email: email,
           emailVerified: false,
           password: password,
           displayName: name,
-          disabled: false,
+          disabled: false
         })
           .then((createdUser) => {
             id = createdUser.uid;
             accessToken = jwtUtil.createAccessToken({
               id: id,
               email: createdUser.email,
-              name: createdUser.displayName,
+              name: createdUser.displayName
             });
             return bcrypt.genSalt(SALT_WORK_FACTOR)
               .then((salt) => {
-                  return bcrypt.hash(password, salt);
-                })
+                return bcrypt.hash(password, salt);
+              })
               .then((hash) => {
-                return refUtil.usersRef.child(id).set({
+                return firebase.refs.usersRef.child(id).set({
                   id: id,
                   email: email,
                   name: name,
@@ -71,7 +63,7 @@ const UserMutation = {
                   preference: {
                     colorTheme: 'CLASSIC',
                     remindEmail: false
-                  },
+                  }
                 });
               });
           })
@@ -80,31 +72,31 @@ const UserMutation = {
           })
           .catch(reject);
       });
-    },
+    }
   }),
   getToken: mutationWithClientMutationId({
     name: 'getToken',
     inputFields: {
       email: { type: new GraphQLNonNull(GraphQLString) },
-      password: { type: new GraphQLNonNull(GraphQLString) },
+      password: { type: new GraphQLNonNull(GraphQLString) }
     },
     outputFields: {
       accessToken: {
         type: GraphQLString,
-        resolve: (payload) => payload.accessToken,
-      },
+        resolve: (payload) => payload.accessToken
+      }
     },
     mutateAndGetPayload: ({ email, password }) => {
       let accessToken = '';
       return new Promise((resolve, reject) => {
-        admin.auth().getUserByEmail(email)
-          .then(function (userRecord) {
+        firebase.admin.auth().getUserByEmail(email)
+          .then((userRecord) => {
             accessToken = jwtUtil.createAccessToken({
               id: userRecord.uid,
               email: userRecord.email,
-              name: userRecord.displayName,
+              name: userRecord.displayName
             });
-            return refUtil.usersRef.child(userRecord.uid).once('value');
+            return firebase.refs.usersRef.child(userRecord.uid).once('value');
           })
           .then((snapshot) => {
             return bcrypt.compare(password, snapshot.val().password);
@@ -118,64 +110,77 @@ const UserMutation = {
           })
           .catch(reject);
       });
-    },
+    }
   }),
 
-  /// TODO: Implement image upload feature with GraphQL
-  uploadProfileImage: mutationWithClientMutationId({
-    name: 'uploadProfileImage',
+  updateProfileTmage: mutationWithClientMutationId({
+    name: 'updateProfileTmage',
     inputFields: {
-      profileImageUrl: { type: new GraphQLNonNull(GraphQLString) },
+      profileImageUrl: { type: new GraphQLNonNull(GraphQLString) }
     },
     outputFields: {
       user: {
         type: UserType,
-        resolve: (payload) => payload,
-      },
+        resolve: (payload) => payload
+      }
     },
     mutateAndGetPayload: ({ profileImageUrl }, { user }) => {
-      return UserModel
-        .findOneAndUpdate(
-          { id: user.id },
-          { profileImageUrl },
-          { new: true }
-        );
-    },
+      return new Promise((resolve, reject) => {
+        if (user) {
+          return firebase.refs.usersRef.child(user.id).child('profileImageUrl').set(profileImageUrl)
+            .then(() => firebase.refs.usersRef.child(user.id).once('value'))
+            .then((snap) => resolve(snap.val()));
+        }
+        return reject('This mutation needs access token. Please check header.authorization.');
+      });
+    }
   }),
   updateColorTheme: mutationWithClientMutationId({
     name: 'updateColorTheme',
     inputFields: {
-      colorTheme: { type: new GraphQLNonNull(GraphQLString) },
+      colorTheme: { type: new GraphQLNonNull(GraphQLString) }
     },
     outputFields: {
       user: {
         type: UserType,
-        resolve: (payload) => payload,
-      },
+        resolve: (payload) => payload
+      }
     },
     mutateAndGetPayload: ({ colorTheme }, { user }) => {
-      return refUtil.usersRef.child(user.id).child('preference').child('colorTheme').set(colorTheme)
-        .then(() => refUtil.usersRef.child(user.id).once('value'))
-        .then((snap) => snap.val())
-    },
+      return new Promise((resolve, reject) => {
+        if (user) {
+          return firebase.refs.usersRef.child(user.id).child('preference').child('colorTheme')
+            .set(colorTheme)
+            .then(() => firebase.refs.usersRef.child(user.id).once('value'))
+            .then((snap) => resolve(snap.val()));
+        }
+        return reject('This mutation needs access token. Please check header.authorization.');
+      });
+    }
   }),
   updateRemindEmail: mutationWithClientMutationId({
     name: 'updateRemindEmail',
     inputFields: {
-      remindEmail: { type: new GraphQLNonNull(GraphQLBoolean) },
+      remindEmail: { type: new GraphQLNonNull(GraphQLBoolean) }
     },
     outputFields: {
       user: {
         type: UserType,
-        resolve: (payload) => payload,
-      },
+        resolve: (payload) => payload
+      }
     },
     mutateAndGetPayload: ({ remindEmail }, { user }) => {
-      return refUtil.usersRef.child(user.id).child('preference').child('remainEmail').set(remindEmail)
-        .then(() => refUtil.usersRef.child(user.id).once('value'))
-        .then((snap) => snap.val())
-    },
-  }),
+      return new Promise((resolve, reject) => {
+        if (user) {
+          return firebase.refs.usersRef.child(user.id).child('preference').child('remainEmail')
+            .set(remindEmail)
+            .then(() => firebase.refs.usersRef.child(user.id).once('value'))
+            .then((snap) => resolve(snap.val()));
+        }
+        return reject('This mutation needs access token. Please check header.authorization.');
+      });
+    }
+  })
 };
 
 export default UserMutation;
