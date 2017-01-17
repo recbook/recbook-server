@@ -176,7 +176,7 @@ export default class KakaoBookAPIUtil {
   }
 
   static removeTag(str) {
-    return str.replace(/&lt;b&gt;/g, '');
+    return str.replace(/&lt;b&gt;/g, '').replace(/&lt;\/b&gt;/g, '');
   }
 
 

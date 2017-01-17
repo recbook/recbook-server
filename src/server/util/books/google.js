@@ -52,7 +52,6 @@ export default class GoogleBookAPIUtil {
     const {orderBy = 'relevance', maxResults = 40, startIndex = 0, printType = 'books'} = options;
     const query = {
       q: keyword.replace(/\s/g, '+'),
-      key: `${GOOGLE_BOOKS_API.API_KEY}`,
       orderBy,
       maxResults,
       startIndex,
@@ -63,7 +62,7 @@ export default class GoogleBookAPIUtil {
     return fetch(address, {method: 'GET'})
       .then(response => {
         if (!response.ok) {
-          throw Error(response.json());
+          return response.json().then(data => { throw Error(JSON.stringify(data))});
         }
         return response.json();
       })
