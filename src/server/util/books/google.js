@@ -100,7 +100,7 @@ export default class GoogleBookAPIUtil {
     if (!firstResult.pageInfo.hasNext) return [Promise.resolve(firstResult.bookList)];
     const times = (firstResult.pageInfo.totalSize / 40) - 1;
     const startIndexes = [];
-    for(let i = 0; i < times; i++) {
+    for(let i = 0; i < 1; i++) {
       startIndexes.push(40 * i);
     }
     return startIndexes.map(idx => {

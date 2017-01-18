@@ -94,7 +94,7 @@ export default class KakaoBookAPIUtil {
   ]
   */
   static asyncSearchAllBooks(keyword) {
-    const pageNoArr = [1, 2, 3];
+    const pageNoArr = [1];
 
     return new Promise((resolve) => {
       resolve(pageNoArr.map(pageNo => {
