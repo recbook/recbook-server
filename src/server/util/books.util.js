@@ -33,12 +33,12 @@ export default class BookAPIUtil {
   ]
   */
   static searchAllBooks(keyword, options = {}) {
-    const { searchingAPI = [BOOK_API_TYPE.GOOGLE, BOOK_API_TYPE.KAKAO] } = options;
+    const { searchingAPI = [BOOK_API_TYPE.KAKAO] } = options;
     return Promise.all(
       searchingAPI
         .map(
           apiType => BOOK_API[apiType].searchAllBooks(keyword)
-            .then(data => data.filter(book => book.isbn13))
+            .then(data => data.filter(book => book.isbn))
         )
       )
       .then(BookAPIUtil.mergeBooks)
@@ -87,9 +87,9 @@ export default class BookAPIUtil {
     const mergedBooks = [];
     let length = 0;
     results.reduce((prev, next) => prev.concat(next)).map(data => {
-      if (booksIndexs[data.isbn13]) return mergedBooks[booksIndexs[data.isbn13]] = data;
+      if (booksIndexs[data.isbn]) return mergedBooks[booksIndexs[data.isbn]] = data;
       mergedBooks.push(data);
-      booksIndexs[data.isbn13] = length;
+      booksIndexs[data.isbn] = length;
       length++;
     });
     return mergedBooks;
