@@ -5,7 +5,7 @@ import {
   GraphQLInt,
   GraphQLBoolean
 } from 'graphql';
-
+import GraphQLJSON from 'graphql-type-json';
 import GraphQLDate from 'graphql-date';
 
 import firebase from '../../util/firebase.util';
@@ -43,9 +43,9 @@ const BookType = new GraphQLObjectType({
         return new Promise((resolve, reject) => {
           return firebase.refs.snippetsRef.orderByChild('author').equalTo(user.id).once('value')
             .then((snap) => resolve(snap.val() ?
-                Object.keys(snap.val())
-                  .map((key) => snap.val()[key])
-                  .filter((obj) => obj.book === source.id) : [])
+              Object.keys(snap.val())
+                .map((key) => snap.val()[key])
+                .filter((obj) => obj.book === source.id) : [])
             )
             .catch(reject);
         });
@@ -57,14 +57,15 @@ const BookType = new GraphQLObjectType({
         return new Promise((resolve, reject) => {
           return firebase.refs.snippetsRef.orderByChild('book').equalTo(source.id).once('value')
             .then((snap) => resolve(snap.val() ?
-                Object.keys(snap.val())
-                  .map((key) => snap.val()[key])
-                  .filter((obj) => obj.author !== user.id) : [])
+              Object.keys(snap.val())
+                .map((key) => snap.val()[key])
+                .filter((obj) => obj.author !== user.id) : [])
             )
             .catch(reject);
         });
       }
-    }
+    },
+    snippets: { type: GraphQLJSON },
   })
 });
 

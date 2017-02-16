@@ -1,4 +1,8 @@
+import {
+  GraphQLList
+} from 'graphql';
 import firebase from '../../util/firebase.util';
+import BookType from '../type/book.type';
 import UserType from '../type/user.type';
 
 const ViewerQuery = {
@@ -16,6 +20,19 @@ const ViewerQuery = {
           // TODO : implement global error handler.
           reject('This query needs access token. Please check header.authorization.');
         }
+      });
+    }
+  },
+  book: {
+    description: 'All Books.',
+    type: new GraphQLList(BookType),
+    resolve: (source, _, {}) => {
+      return new Promise((resolve, reject) => {
+        firebase.refs.booksRef.once('value')
+          .then((snap) => resolve(snap.val() ?
+            Object.keys(snap.val())
+              .map((key) => snap.val()[key]) : [])
+          )
       });
     }
   }

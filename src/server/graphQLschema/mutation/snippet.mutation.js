@@ -31,7 +31,9 @@ const SnippetMutation = {
         if (user) {
           const newRef = firebase.refs.snippetsRef.push();
           const newKey = newRef.key;
-          return newRef.set({ id: newKey, author: user.id, ...args, createdAt: Date.now() })
+          return newRef.set({
+            id: newKey, author: user.id, ...args, createdAt: Date.now(), createdDate: calculateDate()
+          })
             .then(() => firebase.refs.savedRef.child(user.id).child(args.book).remove())
             .then(() => firebase.refs.myLibraryRef.child(user.id).child(args.book).set(true))
             .then(() => firebase.refs.usersRef.child(user.id).once('value'))
@@ -64,5 +66,17 @@ const SnippetMutation = {
     }
   })
 };
+
+function calculateDate() {
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"];
+  const today = new Date();
+  let day = today.getDate();
+  const month = today.getMonth();
+  const year = today.getFullYear();
+  if (day < 10) day = '0' + day;
+  return day + ' ' + monthNames[month] + ' ' + year;
+}
 
 export default SnippetMutation;

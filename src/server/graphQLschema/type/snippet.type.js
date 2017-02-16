@@ -32,7 +32,8 @@ const SnippetType = new GraphQLObjectType({
     contents: { type: GraphQLString },
     page: { type: GraphQLInt },
     imageUrl: { type: GraphQLString },
-    createdAt: { type: GraphQLDate }
+    createdAt: { type: GraphQLDate },
+    createdDate: { type: GraphQLString }
   })
 });
 
