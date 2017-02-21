@@ -42,15 +42,25 @@ const UserType = new GraphQLObjectType({
       type: UserBookConnection,
       args: connectionArgs,
       resolve: (source, args, { user }) => {
-        return firebase.refs.myLibraryRef.child(user.id)
-          .orderByKey()
-          .startAt(args.after ? args.after : '')
-          .limitToFirst(args.first ? args.first : 100)
-          .once('value')
-          .then((myLibraryBooksIdRefSnap) => {
-            const data = myLibraryBooksIdRefSnap.val();
+        return Promise.all([
+          firebase.refs.myLibraryRef.child(user.id)
+            .orderByKey()
+            .startAt(args.after ? args.after : '')
+            .limitToFirst(args.first ? args.first : 100)
+            .once('value'),
+          firebase.refs.savedRef.child(user.id)
+            .orderByKey()
+            .startAt(args.after ? args.after : '')
+            .limitToFirst(args.first ? args.first : 100)
+            .once('value')
+        ])
+          .then((BooksIdRefSnap) => {
+            const myLibraryData = BooksIdRefSnap[0].val() ? Object.keys(BooksIdRefSnap[0].val()) : null;
+            const savedData = BooksIdRefSnap[1].val() ? Object.keys(BooksIdRefSnap[1].val()) : null;
+            const data = (myLibraryData && savedData ? new Set(myLibraryData.concat(savedData)) :
+              myLibraryData ? myLibraryData : savedData ? savedData : null);
             const promises = data ?
-              Object.keys(data).map((key) => firebase.refs.booksRef.child(key).once('value')
+              JSON.parse(JSON.stringify(data)).map((key) => firebase.refs.booksRef.child(key).once('value')
                 .then(snap => snap.val())) : [];
             return Promise.all(promises);
           })
