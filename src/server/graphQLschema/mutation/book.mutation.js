@@ -32,9 +32,13 @@ const BookMutation = {
       contents: { type: new GraphQLList(GraphQLString) },
     },
     outputFields: {
-      data: {
+      success: {
         type: GraphQLBoolean,
-        resolve: (payload) => payload
+        resolve: (payload) => payload.success
+      },
+      bookId: {
+        type: GraphQLString,
+        resolve: (payload) => payload.bookId
       }
     },
     mutateAndGetPayload: (args) => {
@@ -67,7 +71,7 @@ const BookMutation = {
             return vals[0];
           })
           .then((val) => {
-            const snippet = val.snippets || [];
+            const snippet = val.snippets || {};
             if (snippet[args.page] === undefined) snippet[args.page] = {};
             const page = snippet[args.page];
             let previous = null;
@@ -93,10 +97,10 @@ const BookMutation = {
               savedCount: val.savedCount || null,
               isSaved: val.isSaved || null,
               snippets: snippet,
-            })
+            }).then(() => val)
           })
           .then((book) => {
-            resolve({data: true});
+            resolve({success: true, bookId: book.id});
           })
           .catch(reject);
       });
